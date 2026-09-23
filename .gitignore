@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+*.tsbuildinfo
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Supabase CLI local state
+supabase/.temp/
+supabase/.branches/
+.supabase/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Obsidian per-user workspace state
+docs/.obsidian/workspace*.json
+docs/.obsidian/cache
+docs/.trash/
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.swp

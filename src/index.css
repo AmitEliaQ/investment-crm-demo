@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Heebo", ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50: #eef5fd;
+  --color-brand-100: #d7e7fa;
+  --color-brand-500: #2a78d6;
+  --color-brand-600: #1f63b8;
+  --color-brand-700: #184f93;
+
+  /* Chart series (validated categorical slots 1 & 2) */
+  --color-series-value: #2a78d6;
+  --color-series-deposit: #eb6834;
+}
+
+html,
+body {
+  background: #f6f7f9;
+  color: #0f172a;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+input[type="range"] {
+  accent-color: var(--color-brand-500);
+}
