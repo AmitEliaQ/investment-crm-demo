@@ -8,6 +8,25 @@ Full-stack demo: clients see how their money in an **S&P 500** index grows with 
 | `/dashboard` | Client: investment summary, interactive compound-interest chart & simulator, documents |
 | `/admin` | Admin CRM: AUM metrics, searchable/filterable client table, add/edit/delete, file uploads |
 
+## Screenshots
+
+### Client dashboard
+Personal investment summary, compound-interest growth chart (projected value vs. total deposits) and an interactive simulator.
+
+![Client dashboard](docs/screenshots/client-dashboard.png)
+
+### Admin portal (CRM)
+Aggregated metrics (AUM, average monthly deposit, projected growth) and a searchable, filterable client table with edit, delete and document upload.
+
+![Admin portal](docs/screenshots/admin-portal.png)
+
+### Login
+Email/password sign-in with one-click demo users and a Hebrew / English language switch.
+
+![Login page](docs/screenshots/login.png)
+
+> Screenshots show the English UI; Hebrew (RTL) is the default. Client names are the Hebrew sample data from `supabase/seed.sql`.
+
 ## Quick start
 
 ```bash
