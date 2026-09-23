@@ -12,6 +12,7 @@ Migrations live in `supabase/migrations/`:
 | `20260923114800_schema.sql` | `clients`, `documents` tables and indexes |
 | `20260923114801_security.sql` | `private` schema, `is_admin()`, grants, RLS policies, auto-link triggers |
 | `20260923114802_storage.sql` | `client-documents` bucket and Storage policies |
+| `20260923122533_portfolio_views.sql` | `future_value()` function, `client_portfolio` and `portfolio_summary` views |
 | `supabase/seed.sql` | Demo auth users and sample clients |
 
 ## ERD
@@ -21,6 +22,7 @@ erDiagram
   AUTH_USERS ||--o| CLIENTS : "user_id (nullable)"
   CLIENTS ||--o{ DOCUMENTS : "client_id"
   CLIENTS ||--o{ STORAGE_OBJECTS : "folder {client_id}/"
+  CLIENTS ||--|| CLIENT_PORTFOLIO : "computed view"
 
   AUTH_USERS {
     uuid id PK
@@ -44,6 +46,13 @@ erDiagram
     text file_path UK "bucket object key"
     text file_name "original name"
     timestamptz created_at
+  }
+  CLIENT_PORTFOLIO {
+    uuid id "= clients.id"
+    int months_elapsed
+    numeric deposited_to_date
+    numeric current_value
+    numeric projected_value
   }
   STORAGE_OBJECTS {
     text bucket_id "client-documents"
@@ -74,6 +83,29 @@ erDiagram
 | `file_path` | `text` unique | key inside `client-documents` |
 | `file_name` | `text` | display name (may be Hebrew) |
 | `created_at` | `timestamptz` | |
+
+## Portfolio views (computed, read-only)
+
+The tables store only each client's **plan**. The money figures the app shows are calculated, and the same calculation is available in the database through two views, so you can inspect it in the Table Editor (`schema public` → `client_portfolio` / `portfolio_summary`) or query it with SQL.
+
+| Object | What it returns |
+|---|---|
+| `public.future_value(initial, monthly, annual_return_pct, months)` | Compound-interest FV: monthly compounding with end-of-month deposits. Same formula as `futureValue()` in `src/lib/finance.ts` |
+| `public.client_portfolio` | One row per client: plan columns plus `months_elapsed`, `deposited_to_date`, `current_value`, `projected_deposited`, `projected_value` |
+| `public.portfolio_summary` | One row: `clients`, `linked_clients`, `total_aum`, `total_deposited_to_date`, `avg_monthly_deposit`, `total_projected_value`, `total_projected_deposited`, `projected_growth_pct` (the admin metrics header) |
+
+- Both views use **`security_invoker = true`**, so they run with the caller's rights and the `clients` RLS policies still apply. An admin sees every client and the totals for all of them. A client sees only their own row, and their "summary" covers just themselves. `anon` has no access.
+- Nothing is stored. Values are recalculated on every read, so editing a client's plan updates the views immediately.
+- `months_elapsed` counts whole calendar months since `created_at`, capped at `investment_years × 12`, the same rule as the app. The database evaluates it in UTC and the browser in local time, so the two can differ by one month for a few hours around a month boundary.
+
+```sql
+select full_name, deposited_to_date, current_value, projected_value
+from client_portfolio
+order by current_value desc;
+
+select total_aum, avg_monthly_deposit, total_projected_value, projected_growth_pct
+from portfolio_summary;
+```
 
 ## Role helper
 
@@ -133,3 +165,4 @@ Both are `security definer` with `search_path = ''`. They live in `private`, and
 - anon can't read, client sees 1 row, client can't insert or update
 - admin reads all rows and can insert and delete
 - admin can upload to any folder; client can sign their own file but not another client's, and can't upload
+- client sees only their own row in `client_portfolio` / `portfolio_summary`; admin sees all; anon is denied

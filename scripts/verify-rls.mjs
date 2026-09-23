@@ -41,9 +41,23 @@ check('client row is their own', own?.[0]?.email === 'client@investcrm.com')
   check('client cannot update own row', (data ?? []).length === 0)
 }
 
+// Portfolio views (security_invoker → same RLS as clients)
+{
+  const { data: mine } = await client.from('client_portfolio').select('email, current_value')
+  check('client_portfolio shows client only their row', mine?.length === 1 && mine[0].email === 'client@investcrm.com')
+  const { data: sum } = await client.from('portfolio_summary').select('clients').single()
+  check('portfolio_summary for client covers 1 client', sum?.clients === 1, `got ${sum?.clients}`)
+  const { error } = await anon.from('client_portfolio').select('id')
+  check('anon cannot read client_portfolio', !!error)
+}
+
 // Admin CRUD
 const { data: all } = await admin.from('clients').select('id')
 check('admin sees all clients', (all?.length ?? 0) > 1, `got ${all?.length}`)
+{
+  const { data: rows } = await admin.from('client_portfolio').select('id')
+  check('admin sees every client in client_portfolio', rows?.length === all?.length, `got ${rows?.length}`)
+}
 const { data: probe, error: insErr } = await admin
   .from('clients')
   .insert({ full_name: 'בדיקת RLS', email: 'rls-probe@example.com', initial_investment: 1 })

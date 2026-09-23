@@ -73,6 +73,7 @@ $$FV = P(1+i)^n + PMT \cdot \frac{(1+i)^n - 1}{i}, \qquad i = \frac{r}{12}$$
 - `r = 0` falls back to `P + PMT·n`.
 - **Current portfolio value** = FV at months elapsed since `created_at` (capped at the plan length). This is an *estimate* that assumes the expected return was achieved.
 - **Chart** = yearly points `{deposited, value}` from year 0 to `investment_years`.
+- The same figures are available in the database through the `client_portfolio` and `portfolio_summary` views (see [[Database-Schema]]). The app still computes them client-side so the simulator can update instantly.
 
 ### Admin metrics
 | Metric | Definition |
