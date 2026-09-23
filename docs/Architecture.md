@@ -86,7 +86,7 @@ $$FV = P(1+i)^n + PMT \cdot \frac{(1+i)^n - 1}{i}, \qquad i = \frac{r}{12}$$
 
 ```
 src/
-  lib/          supabase client, types, finance math, he-IL formatters
+  lib/          supabase client, types, finance math, locale-aware formatters
   context/      AuthContext (session + role)
   i18n/         translations (he / en), LanguageContext (lang, dir, t, fmt)
   components/   Layout, ProtectedRoute, StatCard, GrowthChart, DocumentsList,
