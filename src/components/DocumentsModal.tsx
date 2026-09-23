@@ -1,5 +1,6 @@
 import { Upload } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useI18n } from '../i18n/LanguageContext'
 import { DOCUMENTS_BUCKET, supabase } from '../lib/supabase'
 import type { Client, DocumentRow } from '../lib/types'
 import { DocumentsList } from './DocumentsList'
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export function DocumentsModal({ client, onClose, onChange }: Props) {
+  const { t } = useI18n()
   const [documents, setDocuments] = useState<DocumentRow[] | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -54,13 +56,13 @@ export function DocumentsModal({ client, onClose, onChange }: Props) {
           contentType: file.type.startsWith('text/') ? `${file.type};charset=utf-8` : file.type || undefined,
         })
       if (upErr) {
-        setError(`העלאת ${file.name} נכשלה: ${upErr.message}`)
+        setError(t.documents.uploadFailed(file.name, upErr.message))
         continue
       }
       const { error: dbErr } = await supabase.from('documents').insert({ client_id: client.id, file_path: path, file_name: file.name })
       if (dbErr) {
         await supabase.storage.from(DOCUMENTS_BUCKET).remove([path])
-        setError(`שמירת ${file.name} נכשלה: ${dbErr.message}`)
+        setError(t.documents.saveFailed(file.name, dbErr.message))
       }
     }
     if (fileInput.current) fileInput.current.value = ''
@@ -80,7 +82,7 @@ export function DocumentsModal({ client, onClose, onChange }: Props) {
   }
 
   return (
-    <Modal title={`מסמכים — ${client.full_name}`} onClose={onClose} wide>
+    <Modal title={t.documents.modalTitle(client.full_name)} onClose={onClose} wide>
       <label
         className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 p-6 text-center hover:border-brand-500 hover:bg-brand-50 ${busy ? 'pointer-events-none opacity-60' : ''}`}
         onDragOver={(e) => e.preventDefault()}
@@ -90,8 +92,8 @@ export function DocumentsModal({ client, onClose, onChange }: Props) {
         }}
       >
         <Upload className="size-6 text-brand-500" />
-        <span className="text-sm font-medium">{busy ? 'מעלה…' : 'לחצו או גררו קבצים להעלאה'}</span>
-        <span className="text-xs text-slate-500">PDF, תמונות, Excel ועוד · עד 20MB לקובץ</span>
+        <span className="text-sm font-medium">{busy ? t.documents.uploading : t.documents.dropHint}</span>
+        <span className="text-xs text-slate-500">{t.documents.fileTypes}</span>
         <input ref={fileInput} type="file" multiple className="hidden" onChange={(e) => upload(e.target.files)} />
       </label>
 

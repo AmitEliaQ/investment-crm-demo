@@ -1,4 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
+import { useI18n } from '../i18n/LanguageContext'
 import type { Client, ClientInput } from '../lib/types'
 import { Modal } from './Modal'
 
@@ -18,6 +19,7 @@ const EMPTY: ClientInput = {
 }
 
 export function ClientFormModal({ client, onClose, onSave }: Props) {
+  const { t } = useI18n()
   const [form, setForm] = useState<ClientInput>(() =>
     client
       ? {
@@ -45,12 +47,12 @@ export function ClientFormModal({ client, onClose, onSave }: Props) {
   }
 
   return (
-    <Modal title={client ? 'עריכת לקוח' : 'הוספת לקוח חדש'} onClose={onClose}>
+    <Modal title={client ? t.clientForm.editTitle : t.clientForm.addTitle} onClose={onClose}>
       <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
-        <Field label="שם מלא" className="col-span-2">
+        <Field label={t.clientForm.fullName} className="col-span-2">
           <input required value={form.full_name} onChange={(e) => set('full_name', e.target.value)} className={input} />
         </Field>
-        <Field label="אימייל" className="col-span-2" hint="אם קיים משתמש עם אימייל זה, הוא ישויך ללקוח אוטומטית">
+        <Field label={t.clientForm.email} className="col-span-2" hint={t.clientForm.emailHint}>
           <input
             required
             type="email"
@@ -60,13 +62,13 @@ export function ClientFormModal({ client, onClose, onSave }: Props) {
             className={`${input} text-start`}
           />
         </Field>
-        <Field label="השקעה ראשונית (₪)">
+        <Field label={t.clientForm.initial}>
           <NumberInput value={form.initial_investment} min={0} step={1000} onChange={(v) => set('initial_investment', v)} />
         </Field>
-        <Field label="הפקדה חודשית (₪)">
+        <Field label={t.clientForm.monthly}>
           <NumberInput value={form.monthly_deposit} min={0} step={100} onChange={(v) => set('monthly_deposit', v)} />
         </Field>
-        <Field label="תשואה שנתית צפויה (%)">
+        <Field label={t.clientForm.annualReturn}>
           <NumberInput
             value={form.expected_annual_return}
             min={-100}
@@ -75,7 +77,7 @@ export function ClientFormModal({ client, onClose, onSave }: Props) {
             onChange={(v) => set('expected_annual_return', v)}
           />
         </Field>
-        <Field label="תקופת השקעה (שנים)">
+        <Field label={t.clientForm.years}>
           <NumberInput value={form.investment_years} min={1} max={60} step={1} onChange={(v) => set('investment_years', v)} />
         </Field>
 
@@ -83,14 +85,14 @@ export function ClientFormModal({ client, onClose, onSave }: Props) {
 
         <div className="col-span-2 flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 px-4 py-2 text-sm hover:bg-slate-50">
-            ביטול
+            {t.common.cancel}
           </button>
           <button
             type="submit"
             disabled={busy}
             className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
           >
-            {busy ? 'שומר…' : 'שמירה'}
+            {busy ? t.common.saving : t.common.save}
           </button>
         </div>
       </form>

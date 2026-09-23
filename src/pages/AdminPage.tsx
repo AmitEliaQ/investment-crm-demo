@@ -8,7 +8,8 @@ import { ConfirmDialog } from '../components/Modal'
 import { Spinner } from '../components/Spinner'
 import { StatCard } from '../components/StatCard'
 import { clientSnapshot, type ClientSnapshot } from '../lib/finance'
-import { formatILS, formatPercent } from '../lib/format'
+import { useI18n } from '../i18n/LanguageContext'
+import type { Dict } from '../i18n/translations'
 import { DOCUMENTS_BUCKET, supabase } from '../lib/supabase'
 import type { Client, ClientInput } from '../lib/types'
 
@@ -19,16 +20,17 @@ type StatusFilter = 'all' | 'linked' | 'pending'
 type HorizonFilter = 'all' | 'short' | 'mid' | 'long'
 type SortKey = 'name' | 'current' | 'projected' | 'monthly' | 'newest'
 
-const HORIZONS: Record<HorizonFilter, { label: string; test: (y: number) => boolean }> = {
-  all: { label: 'כל התקופות', test: () => true },
-  short: { label: 'עד 10 שנים', test: (y) => y <= 10 },
-  mid: { label: '11–20 שנים', test: (y) => y > 10 && y <= 20 },
-  long: { label: 'מעל 20 שנים', test: (y) => y > 20 },
+const HORIZONS: Record<HorizonFilter, { label: (t: Dict) => string; test: (y: number) => boolean }> = {
+  all: { label: (t) => t.admin.horizonAll, test: () => true },
+  short: { label: (t) => t.admin.horizonShort, test: (y) => y <= 10 },
+  mid: { label: (t) => t.admin.horizonMid, test: (y) => y > 10 && y <= 20 },
+  long: { label: (t) => t.admin.horizonLong, test: (y) => y > 20 },
 }
 
 const DUPLICATE_EMAIL = '23505'
 
 export function AdminPage() {
+  const { t, lang, fmt } = useI18n()
   const [clients, setClients] = useState<ClientRow[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -81,21 +83,21 @@ export function AdminPage() {
         HORIZONS[horizon].test(c.investment_years),
     )
     const by: Record<SortKey, (a: Enriched, b: Enriched) => number> = {
-      name: (a, b) => a.full_name.localeCompare(b.full_name, 'he'),
+      name: (a, b) => a.full_name.localeCompare(b.full_name, lang),
       current: (a, b) => b.snap.currentValue - a.snap.currentValue,
       projected: (a, b) => b.snap.projectedValue - a.snap.projectedValue,
       monthly: (a, b) => Number(b.monthly_deposit) - Number(a.monthly_deposit),
       newest: (a, b) => b.created_at.localeCompare(a.created_at),
     }
     return rows.sort(by[sort])
-  }, [enriched, query, status, horizon, sort])
+  }, [enriched, query, status, horizon, sort, lang])
 
   const save = async (input: ClientInput): Promise<string | null> => {
     const { error } =
       editing === 'new'
         ? await supabase.from('clients').insert(input)
         : await supabase.from('clients').update(input).eq('id', (editing as Client).id)
-    if (error) return error.code === DUPLICATE_EMAIL ? 'כבר קיים לקוח עם כתובת אימייל זו' : error.message
+    if (error) return error.code === DUPLICATE_EMAIL ? t.admin.duplicateEmail : error.message
     setEditing(null)
     await load()
     return null
@@ -120,41 +122,44 @@ export function AdminPage() {
   const show = (text: string) => (clients === null ? '—' : text)
 
   return (
-    <Layout title="פורטל ניהול / CRM">
+    <Layout title={t.layout.adminTitle}>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">ניהול לקוחות</h1>
-          <p className="text-slate-500">
-            {metrics.n} לקוחות · {metrics.linked} מחוברים למערכת · {metrics.n - metrics.linked} ממתינים להרשמה
-          </p>
+          <h1 className="text-2xl font-bold">{t.admin.heading}</h1>
+          <p className="text-slate-500">{t.admin.summary(metrics.n, metrics.linked, metrics.n - metrics.linked)}</p>
         </div>
         <button
           onClick={() => setEditing('new')}
           className="flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
         >
           <Plus className="size-4" />
-          לקוח חדש
+          {t.admin.newClient}
         </button>
       </div>
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="סה״כ נכסים מנוהלים (AUM)"
-          value={show(formatILS(metrics.aum))}
-          hint={`מתוכם הפקדות: ${formatILS(metrics.depositedToDate)}`}
+          label={t.admin.aum}
+          value={show(fmt.ils(metrics.aum))}
+          hint={t.admin.aumHint(fmt.ils(metrics.depositedToDate))}
           icon={Landmark}
         />
-        <StatCard label="הפקדה חודשית ממוצעת" value={show(formatILS(metrics.avgMonthly))} hint="ממוצע לכל הלקוחות" icon={PiggyBank} />
         <StatCard
-          label="שווי תיקים צפוי בסוף התקופה"
-          value={show(formatILS(metrics.projected))}
-          hint="סכום התחזיות של כל הלקוחות"
+          label={t.admin.avgMonthly}
+          value={show(fmt.ils(metrics.avgMonthly))}
+          hint={t.admin.avgMonthlyHint}
+          icon={PiggyBank}
+        />
+        <StatCard
+          label={t.admin.projected}
+          value={show(fmt.ils(metrics.projected))}
+          hint={t.admin.projectedHint}
           icon={TrendingUp}
         />
         <StatCard
-          label="צמיחה צפויה מעל ההפקדות"
-          value={show(formatPercent(Math.round(metrics.growthPct)))}
-          hint="רווח ריבית דריבית ביחס לסך ההפקדות"
+          label={t.admin.growth}
+          value={show(fmt.percent(Math.round(metrics.growthPct)))}
+          hint={t.admin.growthHint}
           icon={Coins}
         />
       </section>
@@ -166,28 +171,28 @@ export function AdminPage() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="חיפוש לפי שם או אימייל…"
+              placeholder={t.admin.searchPlaceholder}
               className="w-full rounded-lg border border-slate-300 py-2 ps-9 pe-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
           </div>
-          <Select value={status} onChange={(v) => setStatus(v as StatusFilter)} label="סטטוס">
-            <option value="all">כל הסטטוסים</option>
-            <option value="linked">מחובר למערכת</option>
-            <option value="pending">ממתין להרשמה</option>
+          <Select value={status} onChange={(v) => setStatus(v as StatusFilter)} label={t.admin.statusLabel}>
+            <option value="all">{t.admin.statusAll}</option>
+            <option value="linked">{t.admin.statusLinked}</option>
+            <option value="pending">{t.admin.statusPending}</option>
           </Select>
-          <Select value={horizon} onChange={(v) => setHorizon(v as HorizonFilter)} label="תקופת השקעה">
+          <Select value={horizon} onChange={(v) => setHorizon(v as HorizonFilter)} label={t.admin.horizonLabel}>
             {Object.entries(HORIZONS).map(([k, h]) => (
               <option key={k} value={k}>
-                {h.label}
+                {h.label(t)}
               </option>
             ))}
           </Select>
-          <Select value={sort} onChange={(v) => setSort(v as SortKey)} label="מיון">
-            <option value="newest">מיון: החדשים ביותר</option>
-            <option value="name">מיון: שם</option>
-            <option value="current">מיון: שווי נוכחי</option>
-            <option value="projected">מיון: שווי צפוי</option>
-            <option value="monthly">מיון: הפקדה חודשית</option>
+          <Select value={sort} onChange={(v) => setSort(v as SortKey)} label={t.admin.sortLabel}>
+            <option value="newest">{t.admin.sortNewest}</option>
+            <option value="name">{t.admin.sortName}</option>
+            <option value="current">{t.admin.sortCurrent}</option>
+            <option value="projected">{t.admin.sortProjected}</option>
+            <option value="monthly">{t.admin.sortMonthly}</option>
           </Select>
         </div>
 
@@ -198,22 +203,22 @@ export function AdminPage() {
         ) : visible.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-12 text-slate-500">
             <Users className="size-8" />
-            לא נמצאו לקוחות התואמים לחיפוש
+            {t.admin.noResults}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[960px] text-sm">
               <thead className="bg-slate-50 text-start text-xs text-slate-500">
                 <tr>
-                  <Th>לקוח</Th>
-                  <Th>סטטוס</Th>
-                  <Th num>השקעה ראשונית</Th>
-                  <Th num>הפקדה חודשית</Th>
-                  <Th num>תשואה</Th>
-                  <Th num>שנים</Th>
-                  <Th num>שווי נוכחי</Th>
-                  <Th num>שווי צפוי</Th>
-                  <Th>פעולות</Th>
+                  <Th>{t.admin.colClient}</Th>
+                  <Th>{t.admin.colStatus}</Th>
+                  <Th num>{t.admin.colInitial}</Th>
+                  <Th num>{t.admin.colMonthly}</Th>
+                  <Th num>{t.admin.colReturn}</Th>
+                  <Th num>{t.admin.colYears}</Th>
+                  <Th num>{t.admin.colCurrent}</Th>
+                  <Th num>{t.admin.colProjected}</Th>
+                  <Th>{t.admin.colActions}</Th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -221,37 +226,35 @@ export function AdminPage() {
                   <tr key={c.id} className="hover:bg-slate-50/60">
                     <td className="px-4 py-3">
                       <div className="font-medium">{c.full_name}</div>
-                      <div className="text-xs text-slate-500" dir="ltr" style={{ textAlign: 'right' }}>
-                        {c.email}
-                      </div>
+                      <div className="text-xs text-slate-500">{c.email}</div>
                     </td>
                     <td className="px-4 py-3">
                       {c.user_id ? (
-                        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">● מחובר</span>
+                        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">{t.admin.badgeLinked}</span>
                       ) : (
-                        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">◌ ממתין</span>
+                        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">{t.admin.badgePending}</span>
                       )}
                     </td>
-                    <Td num>{formatILS(Number(c.initial_investment))}</Td>
-                    <Td num>{formatILS(Number(c.monthly_deposit))}</Td>
-                    <Td num>{formatPercent(Number(c.expected_annual_return))}</Td>
+                    <Td num>{fmt.ils(Number(c.initial_investment))}</Td>
+                    <Td num>{fmt.ils(Number(c.monthly_deposit))}</Td>
+                    <Td num>{fmt.percent(Number(c.expected_annual_return))}</Td>
                     <Td num>{c.investment_years}</Td>
-                    <Td num>{formatILS(c.snap.currentValue)}</Td>
+                    <Td num>{fmt.ils(c.snap.currentValue)}</Td>
                     <Td num strong>
-                      {formatILS(c.snap.projectedValue)}
+                      {fmt.ils(c.snap.projectedValue)}
                     </Td>
                     <td className="px-4 py-2">
                       <div className="flex items-center gap-0.5">
                         <button
                           onClick={() => setDocsFor(c)}
-                          title="מסמכים"
+                          title={t.admin.documents}
                           className="flex items-center gap-1 rounded-md px-2 py-1.5 text-slate-600 hover:bg-slate-100"
                         >
                           <FileText className="size-4" />
                           <span className="tabular-nums">{c.docCount}</span>
                         </button>
-                        <IconButton label="עריכה" onClick={() => setEditing(c)} icon={<Pencil className="size-4" />} />
-                        <IconButton label="מחיקה" danger onClick={() => setDeleting(c)} icon={<Trash2 className="size-4" />} />
+                        <IconButton label={t.common.edit} onClick={() => setEditing(c)} icon={<Pencil className="size-4" />} />
+                        <IconButton label={t.common.delete} danger onClick={() => setDeleting(c)} icon={<Trash2 className="size-4" />} />
                       </div>
                     </td>
                   </tr>
@@ -266,10 +269,14 @@ export function AdminPage() {
       {docsFor && <DocumentsModal client={docsFor} onClose={() => setDocsFor(null)} onChange={load} />}
       {deleting && (
         <ConfirmDialog
-          title="מחיקת לקוח"
+          title={t.admin.deleteTitle}
           message={
             <>
-              למחוק את <b>{deleting.full_name}</b>? כל המסמכים המצורפים יימחקו גם הם. לא ניתן לבטל פעולה זו.
+              {t.admin.deleteBefore}
+              <b>
+                <bdi>{deleting.full_name}</bdi>
+              </b>
+              {t.admin.deleteAfter}
             </>
           }
           busy={deleteBusy}

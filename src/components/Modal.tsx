@@ -1,5 +1,6 @@
 import { X } from 'lucide-react'
 import { useEffect, type ReactNode } from 'react'
+import { useI18n } from '../i18n/LanguageContext'
 
 interface Props {
   title: string
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function Modal({ title, onClose, children, wide = false }: Props) {
+  const { t } = useI18n()
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
@@ -26,7 +28,7 @@ export function Modal({ title, onClose, children, wide = false }: Props) {
       >
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
           <h2 className="text-lg font-semibold">{title}</h2>
-          <button onClick={onClose} className="rounded-md p-1 text-slate-500 hover:bg-slate-100" aria-label="סגירה">
+          <button onClick={onClose} className="rounded-md p-1 text-slate-500 hover:bg-slate-100" aria-label={t.common.close}>
             <X className="size-5" />
           </button>
         </div>
@@ -39,7 +41,7 @@ export function Modal({ title, onClose, children, wide = false }: Props) {
 export function ConfirmDialog({
   title,
   message,
-  confirmLabel = 'מחיקה',
+  confirmLabel,
   busy = false,
   onConfirm,
   onClose,
@@ -51,19 +53,20 @@ export function ConfirmDialog({
   onConfirm: () => void
   onClose: () => void
 }) {
+  const { t } = useI18n()
   return (
     <Modal title={title} onClose={onClose}>
       <div className="text-slate-700">{message}</div>
       <div className="mt-6 flex justify-end gap-2">
         <button onClick={onClose} className="rounded-lg border border-slate-200 px-4 py-2 text-sm hover:bg-slate-50">
-          ביטול
+          {t.common.cancel}
         </button>
         <button
           onClick={onConfirm}
           disabled={busy}
           className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
         >
-          {busy ? 'מוחק…' : confirmLabel}
+          {busy ? t.common.deleting : (confirmLabel ?? t.common.delete)}
         </button>
       </div>
     </Modal>

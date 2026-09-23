@@ -88,9 +88,21 @@ $$FV = P(1+i)^n + PMT \cdot \frac{(1+i)^n - 1}{i}, \qquad i = \frac{r}{12}$$
 src/
   lib/          supabase client, types, finance math, he-IL formatters
   context/      AuthContext (session + role)
+  i18n/         translations (he / en), LanguageContext (lang, dir, t, fmt)
   components/   Layout, ProtectedRoute, StatCard, GrowthChart, DocumentsList,
-                ClientFormModal, DocumentsModal, Modal/ConfirmDialog, Spinner
+                ClientFormModal, DocumentsModal, Modal/ConfirmDialog, Spinner,
+                LanguageSwitcher
   pages/        LoginPage, DashboardPage, AdminPage (lazy-loaded)
 ```
 
-RTL: `<html lang="he" dir="rtl">`, Heebo font, Tailwind logical utilities (`ms-/me-`, `ps-/pe-`, `text-start/end`). Emails and the chart plot are rendered `dir="ltr"` so time reads left→right, as in standard financial charts.
+## Languages (Hebrew / English)
+
+The UI ships in **Hebrew (default, RTL)** and **English (LTR)**. You can switch with the `LanguageSwitcher` on the login page and in the app header.
+
+- `src/i18n/translations.ts` holds one dictionary per language. `en` is typed as `Dict = typeof he`, so a missing or extra key is a compile error. Strings with parameters are functions (e.g. `t.admin.summary(n, linked, pending)`).
+- `LanguageProvider` (`src/i18n/LanguageContext.tsx`) exposes `{ lang, setLang, t, dir, fmt }`. It sets `<html lang dir>` and `document.title`, and saves the choice in `localStorage` under `investcrm.lang`.
+- `fmt` holds `Intl` formatters for the active locale (`he-IL` / `en-US`): currency is always ₪ (ILS), and dates and percentages follow the locale.
+- A tiny inline script in `index.html` applies the saved direction before first paint, so there is no RTL→LTR flash.
+- Data (client names, file names) is never translated. User-supplied names inside sentences are wrapped in Unicode bidi isolates (`\u2068…\u2069` / `<bdi>`) so Hebrew names display correctly in English text and vice versa.
+
+Layout uses Tailwind logical utilities (`ms-/me-`, `ps-/pe-`, `start-/end-`, `text-start/end`) throughout, so each component mirrors automatically when `dir` changes. The Heebo font covers both scripts. The chart plot is always rendered `dir="ltr"` so time reads left→right, as in standard financial charts. Its tooltip follows the page direction.

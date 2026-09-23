@@ -1,6 +1,6 @@
 import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ProjectionPoint } from '../lib/finance'
-import { formatCompact, formatILS } from '../lib/format'
+import { useI18n } from '../i18n/LanguageContext'
 
 const VALUE_COLOR = 'var(--color-series-value)'
 const DEPOSIT_COLOR = 'var(--color-series-deposit)'
@@ -12,16 +12,17 @@ interface TooltipProps {
 }
 
 function ChartTooltip({ active, payload, label }: TooltipProps) {
+  const { t, dir, fmt } = useI18n()
   if (!active || !payload?.length) return null
   const p = payload[0].payload
   const interest = p.value - p.deposited
   return (
-    <div dir="rtl" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-md">
-      <div className="mb-1 font-semibold">שנה {label}</div>
-      <Row color={VALUE_COLOR} label="שווי תיק צפוי" value={formatILS(p.value)} />
-      <Row color={DEPOSIT_COLOR} label="סך הפקדות" value={formatILS(p.deposited)} />
+    <div dir={dir} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-md">
+      <div className="mb-1 font-semibold">{label === 0 ? t.chart.today : t.chart.year(label ?? 0)}</div>
+      <Row color={VALUE_COLOR} label={t.chart.projectedValue} value={fmt.ils(p.value)} />
+      <Row color={DEPOSIT_COLOR} label={t.chart.totalDeposits} value={fmt.ils(p.deposited)} />
       <div className="mt-1 border-t border-slate-100 pt-1 text-slate-600">
-        רווח מריבית דריבית: <span className="font-medium tabular-nums text-slate-900">{formatILS(interest)}</span>
+        {t.chart.interestGain} <span className="font-medium tabular-nums text-slate-900">{fmt.ils(interest)}</span>
       </div>
     </div>
   )
@@ -40,6 +41,7 @@ function Row({ color, label, value }: { color: string; label: string; value: str
 }
 
 export function GrowthChart({ data }: { data: ProjectionPoint[] }) {
+  const { t, dir, fmt } = useI18n()
   return (
     // Time runs left→right like standard financial charts, so the plot itself is LTR.
     <div dir="ltr" className="h-80 w-full">
@@ -61,7 +63,7 @@ export function GrowthChart({ data }: { data: ProjectionPoint[] }) {
             tickLine={false}
             axisLine={{ stroke: '#cbd5e1' }}
             tick={{ fill: '#64748b', fontSize: 12 }}
-            tickFormatter={(y: number) => (y === 0 ? 'היום' : `שנה ${y}`)}
+            tickFormatter={(y: number) => (y === 0 ? t.chart.today : t.chart.year(y))}
             minTickGap={16}
           />
           <YAxis
@@ -69,12 +71,12 @@ export function GrowthChart({ data }: { data: ProjectionPoint[] }) {
             tickLine={false}
             axisLine={false}
             tick={{ fill: '#64748b', fontSize: 12 }}
-            tickFormatter={formatCompact}
+            tickFormatter={fmt.compact}
           />
           <Tooltip content={<ChartTooltip />} cursor={{ stroke: '#94a3b8', strokeDasharray: '4 4' }} />
           <Legend
             verticalAlign="top"
-            align="right"
+            align={dir === 'rtl' ? 'right' : 'left'}
             height={32}
             iconType="circle"
             formatter={(v: string) => <span className="text-sm text-slate-700">{v}</span>}
@@ -82,7 +84,7 @@ export function GrowthChart({ data }: { data: ProjectionPoint[] }) {
           <Area
             type="monotone"
             dataKey="deposited"
-            name="סך הפקדות"
+            name={t.chart.totalDeposits}
             stroke={DEPOSIT_COLOR}
             strokeWidth={2}
             fill="url(#depositFill)"
@@ -91,7 +93,7 @@ export function GrowthChart({ data }: { data: ProjectionPoint[] }) {
           <Area
             type="monotone"
             dataKey="value"
-            name="שווי תיק צפוי"
+            name={t.chart.projectedValue}
             stroke={VALUE_COLOR}
             strokeWidth={2}
             fill="url(#valueFill)"

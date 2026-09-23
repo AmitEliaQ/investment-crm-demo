@@ -1,6 +1,6 @@
 import { Download, Eye, FileText, Trash2 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
-import { formatDate } from '../lib/format'
+import { useI18n } from '../i18n/LanguageContext'
 import { DOCUMENTS_BUCKET, supabase } from '../lib/supabase'
 import type { DocumentRow } from '../lib/types'
 
@@ -10,6 +10,7 @@ interface Props {
 }
 
 export function DocumentsList({ documents, onDelete }: Props) {
+  const { t, fmt } = useI18n()
   const [error, setError] = useState<string | null>(null)
 
   // Private bucket: every view/download goes through a short-lived signed URL.
@@ -19,14 +20,14 @@ export function DocumentsList({ documents, onDelete }: Props) {
       .from(DOCUMENTS_BUCKET)
       .createSignedUrl(doc.file_path, 60, download ? { download: doc.file_name } : undefined)
     if (error || !data) {
-      setError(`לא ניתן לפתוח את הקובץ: ${error?.message ?? ''}`)
+      setError(t.documents.openFailed(error?.message ?? ''))
       return
     }
     window.open(data.signedUrl, '_blank', 'noopener')
   }
 
   if (documents.length === 0) {
-    return <p className="py-6 text-center text-sm text-slate-500">אין מסמכים מצורפים עדיין.</p>
+    return <p className="py-6 text-center text-sm text-slate-500">{t.documents.empty}</p>
   }
 
   return (
@@ -39,15 +40,15 @@ export function DocumentsList({ documents, onDelete }: Props) {
               <FileText className="size-5 shrink-0 text-brand-500" />
               <div className="min-w-0">
                 <div className="truncate text-sm font-medium">{doc.file_name}</div>
-                <div className="text-xs text-slate-500">{formatDate(doc.created_at)}</div>
+                <div className="text-xs text-slate-500">{fmt.date(doc.created_at)}</div>
               </div>
             </div>
             <div className="flex shrink-0 gap-1">
-              <IconButton label="צפייה" onClick={() => open(doc, false)} icon={<Eye className="size-4" />} />
-              <IconButton label="הורדה" onClick={() => open(doc, true)} icon={<Download className="size-4" />} />
+              <IconButton label={t.documents.view} onClick={() => open(doc, false)} icon={<Eye className="size-4" />} />
+              <IconButton label={t.documents.download} onClick={() => open(doc, true)} icon={<Download className="size-4" />} />
               {onDelete && (
                 <IconButton
-                  label="מחיקה"
+                  label={t.documents.delete}
                   danger
                   onClick={() => onDelete(doc)}
                   icon={<Trash2 className="size-4" />}

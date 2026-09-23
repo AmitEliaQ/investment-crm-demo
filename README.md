@@ -1,10 +1,10 @@
-# InvestCRM — Investment & CRM Demo (Hebrew / RTL)
+# InvestCRM — Investment & CRM Demo (Hebrew / English)
 
 Full-stack demo: clients see how their money in an **S&P 500** index grows with **compound interest**, and admins manage everything from a **CRM portal**. Built with **React + Vite + TypeScript**, **Tailwind**, **Recharts** and **Supabase** (Auth, Postgres RLS, Storage).
 
 | | |
 |---|---|
-| `/login` | Email/password sign-in with one-click demo credentials |
+| `/login` | Email/password sign-in with one-click demo credentials and a Hebrew / English language switch |
 | `/dashboard` | Client: investment summary, interactive compound-interest chart & simulator, documents |
 | `/admin` | Admin CRM: AUM metrics, searchable/filterable client table, add/edit/delete, file uploads |
 

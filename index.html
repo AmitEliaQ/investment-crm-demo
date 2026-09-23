@@ -8,6 +8,15 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <title>InvestCRM — ניהול השקעות</title>
+    <script>
+      // Apply the saved language before first paint to avoid an RTL/LTR flash.
+      try {
+        if (localStorage.getItem('investcrm.lang') === 'en') {
+          document.documentElement.lang = 'en'
+          document.documentElement.dir = 'ltr'
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -2,10 +2,13 @@ import { LogOut, TrendingUp } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useI18n } from '../i18n/LanguageContext'
+import { LanguageSwitcher } from './LanguageSwitcher'
 
 export function Layout({ title, children }: { title: string; children: ReactNode }) {
   const { session, role, signOut } = useAuth()
   const navigate = useNavigate()
+  const { t } = useI18n()
 
   const handleSignOut = async () => {
     await signOut()
@@ -26,18 +29,17 @@ export function Layout({ title, children }: { title: string; children: ReactNode
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <LanguageSwitcher />
             <div className="hidden text-end sm:block">
-              <div className="text-sm font-medium" dir="ltr">
-                {session?.user.email}
-              </div>
-              <div className="text-xs text-slate-500">{role === 'admin' ? 'מנהל מערכת' : 'לקוח'}</div>
+              <div className="text-sm font-medium">{session?.user.email}</div>
+              <div className="text-xs text-slate-500">{role === 'admin' ? t.layout.roleAdmin : t.layout.roleClient}</div>
             </div>
             <button
               onClick={handleSignOut}
               className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50"
             >
-              <LogOut className="size-4" />
-              יציאה
+              <LogOut className="size-4 rtl:-scale-x-100" />
+              {t.layout.signOut}
             </button>
           </div>
         </div>
